@@ -1,4 +1,5 @@
-﻿using Tsinswreng.CsDecl;
+﻿//dotnet run -- E:\_code\CsNgaq\Tsinswreng.CsDecl\proj\TestCsprojCases\Test1\Test1.csproj out
+using Tsinswreng.CsDecl;
 
 if (args.Length < 2) {
 	Console.WriteLine("用法: Tsinswreng.CsDecl.Cli <project.csproj> <outputDir>");

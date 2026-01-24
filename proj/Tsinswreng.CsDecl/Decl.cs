@@ -17,24 +17,51 @@ public static class DeclProcessor {
 		var rewriter = new DeclRewriter();
 		var newRoot = rewriter.Visit(root);
 
+		// Get the processed code
+		var processedCode = newRoot.ToFullString();
+
+		// Wrap the entire result in curly braces to ensure proper namespace formatting
+		var wrappedCode = $"{Environment.NewLine}{processedCode}{Environment.NewLine}";
+
 		// Convert back to string
-		return newRoot.ToFullString();
+		return wrappedCode;
 	}
 
-	private class DeclRewriter : CSharpSyntaxRewriter {
-		public override SyntaxNode? VisitNamespaceDeclaration(NamespaceDeclarationSyntax node) {
-			// Change namespace A; to namespace A{ ... }
-			if (node.SemicolonToken.IsKind(SyntaxKind.SemicolonToken)) {
-				// File-scoped namespace: replace semicolon with opening brace and add closing brace
-				var newNamespace = node
-					.WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.None))
-					.WithOpenBraceToken(SyntaxFactory.Token(SyntaxKind.OpenBraceToken))
-					.WithCloseBraceToken(SyntaxFactory.Token(SyntaxKind.CloseBraceToken));
-
+		private class DeclRewriter : CSharpSyntaxRewriter {
+			public override SyntaxNode? VisitNamespaceDeclaration(NamespaceDeclarationSyntax node) {
+				// Always ensure namespace uses block-scoped syntax with braces
+				// Convert any namespace to block-scoped format
+				var newNamespace = SyntaxFactory.NamespaceDeclaration(
+					node.AttributeLists,
+					node.Modifiers,
+					node.NamespaceKeyword,
+					node.Name,
+					SyntaxFactory.Token(SyntaxKind.OpenBraceToken),
+					node.Externs,
+					node.Usings,
+					node.Members,
+					SyntaxFactory.Token(SyntaxKind.CloseBraceToken),
+					default // No semicolon token for block-scoped namespace
+				);
 				return newNamespace;
 			}
-			return node;
-		}
+
+			public override SyntaxNode? VisitFileScopedNamespaceDeclaration(Microsoft.CodeAnalysis.CSharp.Syntax.FileScopedNamespaceDeclarationSyntax node) {
+				// Convert file-scoped namespace (namespace X;) to block-scoped namespace (namespace X { ... })
+				var newNamespace = SyntaxFactory.NamespaceDeclaration(
+					node.AttributeLists,
+					node.Modifiers,
+					node.NamespaceKeyword,
+					node.Name,
+					SyntaxFactory.Token(SyntaxKind.OpenBraceToken),
+					node.Externs,
+					node.Usings,
+					node.Members,
+					SyntaxFactory.Token(SyntaxKind.CloseBraceToken),
+					default // No semicolon token for block-scoped namespace
+				);
+				return newNamespace;
+			}
 
 		public override SyntaxNode? VisitMethodDeclaration(MethodDeclarationSyntax node) {
 			// Remove method body, keep only the declaration
