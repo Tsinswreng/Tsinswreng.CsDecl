@@ -1,0 +1,9 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup>
+		<OutputType>Exe</OutputType>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\Tsinswreng.CsDecl\Tsinswreng.CsDecl.csproj" />
+	</ItemGroup>
+</Project>
