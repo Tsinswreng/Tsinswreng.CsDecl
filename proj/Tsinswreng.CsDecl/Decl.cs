@@ -18,8 +18,34 @@ public static class DeclProcessor {
 		var rewriter = new DeclRewriter();
 		var newRoot = rewriter.Visit(root);
 
-		// Convert back to string
+		// Convert back to string and format with tabs
+		// var result = newRoot.ToFullString();
+		// return ConvertToTabs(result);
 		return newRoot.ToFullString();
+	}
+
+	private static string ConvertToTabs(string code) {
+		// Replace leading spaces with tabs (assuming 4 spaces per indentation level)
+		var lines = code.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None);
+		for (int i = 0; i < lines.Length; i++) {
+			if (string.IsNullOrWhiteSpace(lines[i])) {
+				continue;
+			}
+
+			// Count leading spaces and replace with tabs
+			int spaceCount = 0;
+			while (spaceCount < lines[i].Length && lines[i][spaceCount] == ' ') {
+				spaceCount++;
+			}
+
+			if (spaceCount > 0) {
+				// Replace 4 spaces with 1 tab (standard indentation)
+				int tabs = spaceCount / 4;
+				lines[i] = new string('\t', tabs) + lines[i].Substring(spaceCount);
+			}
+		}
+
+		return string.Join("\r\n", lines);
 	}
 
 	private class DeclRewriter : CSharpSyntaxRewriter {
