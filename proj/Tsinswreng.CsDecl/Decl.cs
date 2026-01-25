@@ -10,7 +10,10 @@ namespace Tsinswreng.CsDecl;
 
 //配置類
 public class Opt{
-
+	/// 如 using System;
+	public bool RetainUsingNamespace = false;
+	/// 如 using i32 = System.Int32;
+	public bool RetainUsingTypeAlias = true;
 }
 
 public class DeclProcessor {
@@ -26,7 +29,7 @@ public class DeclProcessor {
 		var root = syntaxTree.GetRoot();
 
 		// Create a rewriter to modify the code
-		var rewriter = new DeclRewriter();
+		var rewriter = new DeclRewriter(this);
 		var newRoot = rewriter.Visit(root);
 
 		// Convert back to string and format with tabs
@@ -59,7 +62,12 @@ public class DeclProcessor {
 		return string.Join("\r\n", lines);
 	}
 
-	private class DeclRewriter : CSharpSyntaxRewriter {
+private class DeclRewriter : CSharpSyntaxRewriter {
+	private readonly DeclProcessor _processor;
+
+	public DeclRewriter(DeclProcessor processor) {
+		_processor = processor;
+	}
 		public override SyntaxNode? VisitNamespaceDeclaration(NamespaceDeclarationSyntax node) {
 			// Always ensure namespace uses block-scoped syntax with braces
 			// If it's already a block-scoped namespace, just return it as-is
@@ -115,6 +123,18 @@ public class DeclProcessor {
 				return node.WithBody(null).WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken));
 			}
 			return node;
+		}
+
+		public override SyntaxNode? VisitUsingDirective(UsingDirectiveSyntax node) {
+			// Check if this is a type alias (has an alias)
+			if (node.Alias != null) {
+				// This is a type alias like "using i32 = System.Int32;"
+				return _processor.Opt.RetainUsingTypeAlias ? node : null;
+			}
+			else {
+				// This is a regular using directive like "using System;"
+				return _processor.Opt.RetainUsingNamespace ? node : null;
+			}
 		}
 	}
 }
