@@ -36,7 +36,8 @@ public static class DeclProcessor {
 			}
 			return node;
 		}
-		/* public override SyntaxNode? VisitFileScopedNamespaceDeclaration(Microsoft.CodeAnalysis.CSharp.Syntax.FileScopedNamespaceDeclarationSyntax node) {
+
+		public override SyntaxNode? VisitFileScopedNamespaceDeclaration(FileScopedNamespaceDeclarationSyntax node) {
 			// Convert file-scoped namespace (namespace X;) to block-scoped namespace (namespace X { ... })
 			var newNamespace = SyntaxFactory.NamespaceDeclaration(
 				node.AttributeLists,
@@ -50,9 +51,16 @@ public static class DeclProcessor {
 				SyntaxFactory.Token(SyntaxKind.CloseBraceToken),
 				default // No semicolon token for block-scoped namespace
 			);
-			return newNamespace;
+
+			// Process each member individually to ensure method bodies are cleared
+			var processedMembers = new List<MemberDeclarationSyntax>();
+			foreach (var member in newNamespace.Members) {
+				var processedMember = (MemberDeclarationSyntax)Visit(member);
+				processedMembers.Add(processedMember);
+			}
+
+			return newNamespace.WithMembers(SyntaxFactory.List(processedMembers));
 		}
- */
 		public override SyntaxNode? VisitMethodDeclaration(MethodDeclarationSyntax node) {
 			// Remove method body, keep only the declaration
 			if (node.Body != null) {
