@@ -8,8 +8,19 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace Tsinswreng.CsDecl;
 
-public static class DeclProcessor {
-	public static string ProcessSourceCode(string sourceCode) {
+//配置類
+public class Opt{
+
+}
+
+public class DeclProcessor {
+	public Opt Opt { get; set; }
+
+	public DeclProcessor(Opt opt = null) {
+		Opt = opt ?? new Opt();
+	}
+
+	public string ProcessSourceCode(string sourceCode) {
 		// Parse the source code into a syntax tree
 		var syntaxTree = CSharpSyntaxTree.ParseText(sourceCode);
 		var root = syntaxTree.GetRoot();
@@ -24,7 +35,7 @@ public static class DeclProcessor {
 		return newRoot.ToFullString();
 	}
 
-	private static string ConvertToTabs(string code) {
+	private string ConvertToTabs(string code) {
 		// Replace leading spaces with tabs (assuming 4 spaces per indentation level)
 		var lines = code.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None);
 		for (int i = 0; i < lines.Length; i++) {
@@ -109,6 +120,12 @@ public static class DeclProcessor {
 }
 
 public class DeclService {
+	private readonly DeclProcessor _processor;
+
+	public DeclService(DeclProcessor processor = null) {
+		_processor = processor ?? new DeclProcessor();
+	}
+
 	public void ProcessProject(string csprojPath, string outputDir) {
 		// Initialize MSBuild
 		Microsoft.Build.Locator.MSBuildLocator.RegisterDefaults();
@@ -129,7 +146,7 @@ public class DeclService {
 		// Process each document
 		foreach (var document in project.Documents) {
 			var sourceCode = document.GetTextAsync().Result.ToString();
-			var processedCode = DeclProcessor.ProcessSourceCode(sourceCode);
+			var processedCode = _processor.ProcessSourceCode(sourceCode);
 
 			// Calculate relative path from project directory
 			var documentPath = document.FilePath;
