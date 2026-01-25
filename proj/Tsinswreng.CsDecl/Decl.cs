@@ -61,80 +61,112 @@ public class DeclProcessor {
 
 		return string.Join("\r\n", lines);
 	}
+}
 
-private class DeclRewriter : CSharpSyntaxRewriter {
+internal class DeclRewriter : CSharpSyntaxRewriter {
 	private readonly DeclProcessor _processor;
 
 	public DeclRewriter(DeclProcessor processor) {
 		_processor = processor;
 	}
-		public override SyntaxNode? VisitNamespaceDeclaration(NamespaceDeclarationSyntax node) {
-			// Always ensure namespace uses block-scoped syntax with braces
-			// If it's already a block-scoped namespace, just return it as-is
-			if (node.OpenBraceToken.IsKind(SyntaxKind.OpenBraceToken) && node.CloseBraceToken.IsKind(SyntaxKind.CloseBraceToken)) {
-				var newNamespace = node
-					.WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.None))
-					.WithOpenBraceToken(SyntaxFactory.Token(SyntaxKind.OpenBraceToken))
-					.WithCloseBraceToken(SyntaxFactory.Token(SyntaxKind.CloseBraceToken));
 
-				return newNamespace;
-			}
-			return node;
+	public override SyntaxNode? VisitNamespaceDeclaration(NamespaceDeclarationSyntax node) {
+		// Always ensure namespace uses block-scoped syntax with braces
+		// If it's already a block-scoped namespace, just return it as-is
+		if (node.OpenBraceToken.IsKind(SyntaxKind.OpenBraceToken) && node.CloseBraceToken.IsKind(SyntaxKind.CloseBraceToken)) {
+			// Filter usings inside the namespace based on RetainUsingNamespace setting
+			var filteredUsings = FilterUsings(node.Usings);
+
+			var newNamespace = node
+				.WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.None))
+				.WithOpenBraceToken(SyntaxFactory.Token(SyntaxKind.OpenBraceToken))
+				.WithCloseBraceToken(SyntaxFactory.Token(SyntaxKind.CloseBraceToken))
+				.WithUsings(filteredUsings);
+
+			return newNamespace;
+		}
+		return node;
+	}
+
+	public override SyntaxNode? VisitFileScopedNamespaceDeclaration(FileScopedNamespaceDeclarationSyntax node) {
+		// Convert file-scoped namespace (namespace X;) to block-scoped namespace (namespace X { ... })
+		var openBraceToken = SyntaxFactory.Token(SyntaxKind.OpenBraceToken)
+			.WithTrailingTrivia(SyntaxFactory.CarriageReturnLineFeed); // Add newline after opening brace
+
+		// Filter usings based on RetainUsingNamespace setting
+		var filteredUsings = FilterUsings(node.Usings);
+
+		var newNamespace = SyntaxFactory.NamespaceDeclaration(
+			node.AttributeLists,
+			node.Modifiers,
+			node.NamespaceKeyword,
+			node.Name,
+			openBraceToken,
+			node.Externs,
+			filteredUsings,
+			node.Members,
+			SyntaxFactory.Token(SyntaxKind.CloseBraceToken),
+			default // No semicolon token for block-scoped namespace
+		);
+
+		// Process each member individually to ensure method bodies are cleared
+		var processedMembers = new List<MemberDeclarationSyntax>();
+		foreach (var member in newNamespace.Members) {
+			var processedMember = (MemberDeclarationSyntax)Visit(member);
+			processedMembers.Add(processedMember);
 		}
 
-		public override SyntaxNode? VisitFileScopedNamespaceDeclaration(FileScopedNamespaceDeclarationSyntax node) {
-			// Convert file-scoped namespace (namespace X;) to block-scoped namespace (namespace X { ... })
-			var openBraceToken = SyntaxFactory.Token(SyntaxKind.OpenBraceToken)
-				.WithTrailingTrivia(SyntaxFactory.CarriageReturnLineFeed); // Add newline after opening brace
+		return newNamespace.WithMembers(SyntaxFactory.List(processedMembers));
+	}
 
-			var newNamespace = SyntaxFactory.NamespaceDeclaration(
-				node.AttributeLists,
-				node.Modifiers,
-				node.NamespaceKeyword,
-				node.Name,
-				openBraceToken,
-				node.Externs,
-				node.Usings,
-				node.Members,
-				SyntaxFactory.Token(SyntaxKind.CloseBraceToken),
-				default // No semicolon token for block-scoped namespace
-			);
+	// Add a helper method to filter using directives
+	private SyntaxList<UsingDirectiveSyntax> FilterUsings(SyntaxList<UsingDirectiveSyntax> usings) {
+		var filteredList = new List<UsingDirectiveSyntax>();
 
-			// Process each member individually to ensure method bodies are cleared
-			var processedMembers = new List<MemberDeclarationSyntax>();
-			foreach (var member in newNamespace.Members) {
-				var processedMember = (MemberDeclarationSyntax)Visit(member);
-				processedMembers.Add(processedMember);
-			}
-
-			return newNamespace.WithMembers(SyntaxFactory.List(processedMembers));
-		}
-		public override SyntaxNode? VisitMethodDeclaration(MethodDeclarationSyntax node) {
-			// Remove method body, keep only the declaration
-			if (node.Body != null) {
-				return node.WithBody(null).WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken));
-			}
-			return node;
-		}
-
-		public override SyntaxNode? VisitConstructorDeclaration(ConstructorDeclarationSyntax node) {
-			// Remove constructor body, keep only the declaration
-			if (node.Body != null) {
-				return node.WithBody(null).WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken));
-			}
-			return node;
-		}
-
-		public override SyntaxNode? VisitUsingDirective(UsingDirectiveSyntax node) {
+		foreach (var usingDirective in usings) {
 			// Check if this is a type alias (has an alias)
-			if (node.Alias != null) {
+			if (usingDirective.Alias != null) {
 				// This is a type alias like "using i32 = System.Int32;"
-				return _processor.Opt.RetainUsingTypeAlias ? node : null;
+				if (_processor.Opt.RetainUsingTypeAlias) {
+					filteredList.Add(usingDirective);
+				}
 			}
 			else {
 				// This is a regular using directive like "using System;"
-				return _processor.Opt.RetainUsingNamespace ? node : null;
+				if (_processor.Opt.RetainUsingNamespace) {
+					filteredList.Add(usingDirective);
+				}
 			}
+		}
+
+		return SyntaxFactory.List(filteredList);
+	}
+
+	public override SyntaxNode? VisitMethodDeclaration(MethodDeclarationSyntax node) {
+		// Remove method body, keep only the declaration
+		if (node.Body != null) {
+			return node.WithBody(null).WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken));
+		}
+		return node;
+	}
+
+	public override SyntaxNode? VisitConstructorDeclaration(ConstructorDeclarationSyntax node) {
+		// Remove constructor body, keep only the declaration
+		if (node.Body != null) {
+			return node.WithBody(null).WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken));
+		}
+		return node;
+	}
+
+	public override SyntaxNode? VisitUsingDirective(UsingDirectiveSyntax node) {
+		// Check if this is a type alias (has an alias)
+		if (node.Alias != null) {
+			// This is a type alias like "using i32 = System.Int32;"
+			return _processor.Opt.RetainUsingTypeAlias ? node : null;
+		}
+		else {
+			// This is a regular using directive like "using System;"
+			return _processor.Opt.RetainUsingNamespace ? node : null;
 		}
 	}
 }
