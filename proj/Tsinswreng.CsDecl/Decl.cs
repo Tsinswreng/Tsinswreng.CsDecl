@@ -68,6 +68,14 @@ public static class DeclProcessor {
 			if (node.Body != null) {
 				return node.WithBody(null).WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken));
 			}
+			// Also handle expression-bodied methods (=> syntax)
+			if (node.ExpressionBody != null) {
+				return node.WithExpressionBody(null).WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken));
+			}
+			// If no body or expression body, just add semicolon if not present
+			if (node.SemicolonToken.IsKind(SyntaxKind.None)) {
+				return node.WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken));
+			}
 			return node;
 		}
 

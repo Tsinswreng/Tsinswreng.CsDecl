@@ -1,7 +1,10 @@
 ﻿namespace Test1;
-
+/// <summary>
+///
+/// </summary>
+[Obsolete("BBB")]
 public class SampleClass
-{
+{// test
     public int Field1;
     public string Field2;
 
@@ -22,6 +25,7 @@ public class SampleClass
         set { Field2 = value; }
     }
 
+	[Obsolete("AAA")]
     public void Method1() {
         Console.WriteLine("Method1");
     }
