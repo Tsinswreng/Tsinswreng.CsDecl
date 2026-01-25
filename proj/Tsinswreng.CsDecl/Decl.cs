@@ -1,3 +1,4 @@
+//新
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -17,64 +18,45 @@ public static class DeclProcessor {
 		var rewriter = new DeclRewriter();
 		var newRoot = rewriter.Visit(root);
 
-		// Get the processed code
-		var processedCode = newRoot.ToFullString();
-
-		// Wrap the entire result in curly braces to ensure proper namespace formatting
-		var wrappedCode = $"{Environment.NewLine}{processedCode}{Environment.NewLine}";
-
 		// Convert back to string
-		return wrappedCode;
+		return newRoot.ToFullString();
 	}
 
-		private class DeclRewriter : CSharpSyntaxRewriter {
-			public override SyntaxNode? VisitNamespaceDeclaration(NamespaceDeclarationSyntax node) {
-				// Always ensure namespace uses block-scoped syntax with braces
-				// Convert any namespace to block-scoped format
-				var newNamespace = SyntaxFactory.NamespaceDeclaration(
-					node.AttributeLists,
-					node.Modifiers,
-					node.NamespaceKeyword,
-					node.Name,
-					SyntaxFactory.Token(SyntaxKind.OpenBraceToken),
-					node.Externs,
-					node.Usings,
-					node.Members,
-					SyntaxFactory.Token(SyntaxKind.CloseBraceToken),
-					default // No semicolon token for block-scoped namespace
-				);
+	private class DeclRewriter : CSharpSyntaxRewriter {
+		public override SyntaxNode? VisitNamespaceDeclaration(NamespaceDeclarationSyntax node) {
+			// Always ensure namespace uses block-scoped syntax with braces
+			// If it's already a block-scoped namespace, just return it as-is
+			if (node.OpenBraceToken.IsKind(SyntaxKind.OpenBraceToken) && node.CloseBraceToken.IsKind(SyntaxKind.CloseBraceToken)) {
+				var newNamespace = node
+					.WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.None))
+					.WithOpenBraceToken(SyntaxFactory.Token(SyntaxKind.OpenBraceToken))
+					.WithCloseBraceToken(SyntaxFactory.Token(SyntaxKind.CloseBraceToken));
+
 				return newNamespace;
 			}
-
-			public override SyntaxNode? VisitFileScopedNamespaceDeclaration(Microsoft.CodeAnalysis.CSharp.Syntax.FileScopedNamespaceDeclarationSyntax node) {
-				// Convert file-scoped namespace (namespace X;) to block-scoped namespace (namespace X { ... })
-				var newNamespace = SyntaxFactory.NamespaceDeclaration(
-					node.AttributeLists,
-					node.Modifiers,
-					node.NamespaceKeyword,
-					node.Name,
-					SyntaxFactory.Token(SyntaxKind.OpenBraceToken),
-					node.Externs,
-					node.Usings,
-					node.Members,
-					SyntaxFactory.Token(SyntaxKind.CloseBraceToken),
-					default // No semicolon token for block-scoped namespace
-				);
-				return newNamespace;
-			}
-
+			return node;
+		}
+		/* public override SyntaxNode? VisitFileScopedNamespaceDeclaration(Microsoft.CodeAnalysis.CSharp.Syntax.FileScopedNamespaceDeclarationSyntax node) {
+			// Convert file-scoped namespace (namespace X;) to block-scoped namespace (namespace X { ... })
+			var newNamespace = SyntaxFactory.NamespaceDeclaration(
+				node.AttributeLists,
+				node.Modifiers,
+				node.NamespaceKeyword,
+				node.Name,
+				SyntaxFactory.Token(SyntaxKind.OpenBraceToken),
+				node.Externs,
+				node.Usings,
+				node.Members,
+				SyntaxFactory.Token(SyntaxKind.CloseBraceToken),
+				default // No semicolon token for block-scoped namespace
+			);
+			return newNamespace;
+		}
+ */
 		public override SyntaxNode? VisitMethodDeclaration(MethodDeclarationSyntax node) {
 			// Remove method body, keep only the declaration
 			if (node.Body != null) {
 				return node.WithBody(null).WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken));
-			}
-			// Also handle expression-bodied methods (=> syntax)
-			if (node.ExpressionBody != null) {
-				return node.WithExpressionBody(null).WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken));
-			}
-			// If no body or expression body, just add semicolon if not present
-			if (node.SemicolonToken.IsKind(SyntaxKind.None)) {
-				return node.WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken));
 			}
 			return node;
 		}

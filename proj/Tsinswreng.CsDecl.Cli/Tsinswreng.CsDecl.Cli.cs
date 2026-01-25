@@ -1,4 +1,4 @@
-﻿//dotnet run -- E:\_code\CsNgaq\Tsinswreng.CsDecl\proj\TestCsprojCases\Test1\Test1.csproj out
+﻿//dotnet run -- E:\_code\CsNgaq\Tsinswreng.CsDecl\proj\TestCsprojCases\Test1\Test1.csproj bin
 using Tsinswreng.CsDecl;
 
 if (args.Length < 2) {
