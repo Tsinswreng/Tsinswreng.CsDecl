@@ -65,12 +65,15 @@ public static class DeclProcessor {
 
 		public override SyntaxNode? VisitFileScopedNamespaceDeclaration(FileScopedNamespaceDeclarationSyntax node) {
 			// Convert file-scoped namespace (namespace X;) to block-scoped namespace (namespace X { ... })
+			var openBraceToken = SyntaxFactory.Token(SyntaxKind.OpenBraceToken)
+				.WithTrailingTrivia(SyntaxFactory.CarriageReturnLineFeed); // Add newline after opening brace
+
 			var newNamespace = SyntaxFactory.NamespaceDeclaration(
 				node.AttributeLists,
 				node.Modifiers,
 				node.NamespaceKeyword,
 				node.Name,
-				SyntaxFactory.Token(SyntaxKind.OpenBraceToken),
+				openBraceToken,
 				node.Externs,
 				node.Usings,
 				node.Members,
