@@ -50,25 +50,3 @@ dotnet run -- ../TestCsprojCases/Test1/Test1.csproj bin
 ```
 ]
 
-
-#H[已知問題][
-測試用例代碼:E:\_code\CsNgaq\Tsinswreng.CsDecl\proj\TestCsprojCases\Test1\ExtnModel.cs
-
-生成的代碼:E:\_code\CsNgaq\Tsinswreng.CsDecl\proj\Tsinswreng.CsDecl.Cli\bin\ExtnModel.cs
-
-生成的代碼中末尾多一個} 括號不匹配
-
----
-
-```bash
-dotnet run --project E:/_code/CsNgaq/Tsinswreng.CsDecl/proj/Tsinswreng.CsDecl.Cli/Tsinswreng.CsDecl.Cli.csproj -- E:/_code/CsNgaq/Tsinswreng.CsSqlHelper/proj/Tsinswreng.CsSqlHelper/Tsinswreng.CsSqlHelper.csproj  E:/_code/CsNgaq/CsDeclOut/Tsinswreng.CsSqlHelper
-```
-
-E:\_code\CsNgaq\Tsinswreng.CsSqlHelper\proj\Tsinswreng.CsSqlHelper\ExtnITable.cs
-
-這個文件生成後的文件是:
-
-E:\_code\CsNgaq\CsDeclOut\Tsinswreng.CsSqlHelper\ExtnITable.cs
-
-裏面的方法都沒有出來?
-]

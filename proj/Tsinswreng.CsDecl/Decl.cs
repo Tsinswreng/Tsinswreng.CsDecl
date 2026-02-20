@@ -77,11 +77,19 @@ internal class DeclRewriter : CSharpSyntaxRewriter {
 			// Filter usings inside the namespace based on RetainUsingNamespace setting
 			var filteredUsings = FilterUsings(node.Usings);
 
+			// Process members inside the namespace
+			var processedMembers = new List<MemberDeclarationSyntax>();
+			foreach (var member in node.Members) {
+				var processedMember = (MemberDeclarationSyntax)Visit(member);
+				processedMembers.Add(processedMember);
+			}
+
 			var newNamespace = node
 				.WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.None))
 				.WithOpenBraceToken(SyntaxFactory.Token(SyntaxKind.OpenBraceToken))
 				.WithCloseBraceToken(SyntaxFactory.Token(SyntaxKind.CloseBraceToken))
-				.WithUsings(filteredUsings);
+				.WithUsings(filteredUsings)
+				.WithMembers(SyntaxFactory.List(processedMembers));
 
 			return newNamespace;
 		}
@@ -147,9 +155,47 @@ internal class DeclRewriter : CSharpSyntaxRewriter {
 		if (node.Body != null) {
 			return node.WithBody(null).WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken));
 		}
+		// Also handle expression body (=> ...)
+		if (node.ExpressionBody != null) {
+			return node.WithExpressionBody(null).WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken));
+		}
 		return node;
 	}
+	//2026_0220_162937
 
+	public override SyntaxNode? VisitClassDeclaration(ClassDeclarationSyntax node) {
+		// Process class members - extension blocks will be handled via DefaultVisit
+		var processedMembers = new List<MemberDeclarationSyntax>();
+		foreach (var member in node.Members) {
+			var processedMember = Visit(member);
+			if (processedMember is MemberDeclarationSyntax memberDecl) {
+				processedMembers.Add(memberDecl);
+			}
+		}
+		return node.WithMembers(SyntaxFactory.List(processedMembers));
+	}
+
+	public override SyntaxNode? VisitPropertyDeclaration(PropertyDeclarationSyntax node) {
+		// Remove property body (get/set accessors) and expression body, keep only the declaration
+		var newNode = node;
+
+		// Remove expression body (=> ...)
+		if (newNode.ExpressionBody != null) {
+			newNode = newNode.WithExpressionBody(null);
+		}
+
+		// Remove accessor list (get { } set { })
+		if (newNode.AccessorList != null) {
+			newNode = newNode.WithAccessorList(null);
+		}
+
+		// Add semicolon if not present
+		if (!newNode.SemicolonToken.IsKind(SyntaxKind.SemicolonToken)) {
+			newNode = newNode.WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken));
+		}
+
+		return newNode;
+	}
 
 	public override SyntaxNode? VisitConstructorDeclaration(ConstructorDeclarationSyntax node) {
 		// Remove constructor body, keep only the declaration
@@ -170,6 +216,20 @@ internal class DeclRewriter : CSharpSyntaxRewriter {
 			return _processor.Opt.RetainUsingNamespace ? node : null;
 		}
 	}
+		// Handle extension blocks (C# extension types) - extension(ITable z) { ... }
+	public override SyntaxNode? VisitExtensionBlockDeclaration(ExtensionBlockDeclarationSyntax node) {
+		// Process members inside the extension block
+		var processedMembers = new List<MemberDeclarationSyntax>();
+		foreach (var member in node.Members) {
+			var processedMember = (MemberDeclarationSyntax)Visit(member);
+			if (processedMember != null) {
+				processedMembers.Add(processedMember);
+			}
+		}
+		return node.WithMembers(SyntaxFactory.List(processedMembers));
+	}
+
+
 }
 
 public class DeclService {
