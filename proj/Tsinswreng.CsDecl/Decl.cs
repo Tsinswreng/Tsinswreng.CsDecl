@@ -149,43 +149,7 @@ internal class DeclRewriter : CSharpSyntaxRewriter {
 		}
 		return node;
 	}
-	//2026_0220_162937
 
-	public override SyntaxNode? VisitClassDeclaration(ClassDeclarationSyntax node) {
-		// Check if this is an extension container class (has extension blocks as members)
-		// Process members normally - extension blocks will be handled recursively
-		return base.VisitClassDeclaration(node);
-	}
-
-	public override SyntaxNode DefaultVisit(SyntaxNode node) {
-		// Handle extension blocks by processing their members
-		// This is a fallback for any new syntax types like extension blocks
-		var result = base.DefaultVisit(node);
-
-		// Try to handle types with Members property (like extension blocks)
-		var membersProp = node.GetType().GetProperty("Members");
-		if (membersProp != null) {
-			var members = membersProp.GetValue(node);
-			if (members is SyntaxList<MemberDeclarationSyntax> memberList) {
-				var processedMembers = new List<MemberDeclarationSyntax>();
-				foreach (var member in memberList) {
-					var processedMember = Visit(member);
-					if (processedMember is MemberDeclarationSyntax memberDecl) {
-						processedMembers.Add(memberDecl);
-					}
-				}
-				// Try to create a new node with processed members
-				var withMembersMethod = node.GetType().GetMethod("WithMembers");
-				if (withMembersMethod != null) {
-					var newMembers = SyntaxFactory.List(processedMembers);
-					return withMembersMethod.Invoke(node, new object[] { newMembers }) as SyntaxNode ?? node;
-				}
-			}
-		}
-
-		return result;
-	}
-	//~2026_0220_162937
 
 	public override SyntaxNode? VisitConstructorDeclaration(ConstructorDeclarationSyntax node) {
 		// Remove constructor body, keep only the declaration
