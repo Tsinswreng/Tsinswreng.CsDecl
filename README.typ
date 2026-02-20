@@ -9,14 +9,34 @@
 ]
  */
 
+命令行工具
+傳入csproj文件路徑
+生成項目的符號聲明、用作面向大模型的API文檔。
 
+符號聲明中包含類型(類,結構體,接口,枚舉及其成員), 函數聲明, 訪問器聲明與實現、
+但不包含函數體。
+
+- 移除所有函數實現
+	- 即 `void fn(){}` 變成 `void fn();`
+- 移除所有`using <namespace>`語句
+- 命名空間改爲 `namespace MyNs{}`、不使用`namespace MyNs;`語法
+- 保留Attribute及上方的註釋
+
+
+#H[構建][
+
+非AOT構建
 ```bash
 cd proj/Tsinswreng.CsDecl.Cli
 dotnet publish -c Release -r win-x64 --self-contained false -p:PublishSingleFile=true
 ```
 
+]
 
+
+#H[使用][
 ```bash
-cd proj/Tsinswreng.CsDecl.Cli
-dotnet publish -c Release -r win-x64 --self-contained false -p:PublishSingleFile=true
+mkdir -p MyOutDir/
+CsDecl MyProj.csproj MyOutDir/
 ```
+]
