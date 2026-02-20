@@ -1,5 +1,5 @@
 namespace Test1.Services;
-
+public interface IService{}
 public class DataService : IService {
 	public void Execute() {
 		Console.WriteLine("Executing service");
