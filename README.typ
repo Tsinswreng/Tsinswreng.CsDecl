@@ -25,12 +25,17 @@
 
 
 #H[構建][
+```bash
+cd proj/Tsinswreng.CsDecl.Cli
+dotnet publish -c Release -r win-x64
+```
 
-非AOT構建
+#H[以下構建方式不可用、運行報錯找不到dll][
 ```bash
 cd proj/Tsinswreng.CsDecl.Cli
 dotnet publish -c Release -r win-x64 --self-contained false -p:PublishSingleFile=true
 ```
+]
 
 ]
 
