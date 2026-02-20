@@ -2,12 +2,13 @@
 using System.Collections.Generic;
 using i32 = System.Int32;
 namespace Test1;
+
 using System.Linq;
 using u32 = System.UInt32;
 
 /// <summary>
 ///
-/// </summary>
+/// /// </summary>
 [Obsolete("BBB")]
 public class SampleClass {// test
 	public int Field1;
