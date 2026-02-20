@@ -55,3 +55,9 @@ dotnet run -- ../TestCsprojCases/Test1/Test1.csproj bin
 ```
 ]
 
+
+#H[][
+```bash
+dotnet run --project E:\_code\CsNgaq\Tsinswreng.CsDecl\proj\Tsinswreng.CsDecl.Cli\Tsinswreng.CsDecl.Cli.csproj -- E:\_code\CsNgaq\Tsinswreng.CsCfg\proj\Tsinswreng.CsCfg\Tsinswreng.CsCfg.csproj E:\_code\CsNgaq\CsDeclOut\Tsinswreng.CsCfg\
+```
+]

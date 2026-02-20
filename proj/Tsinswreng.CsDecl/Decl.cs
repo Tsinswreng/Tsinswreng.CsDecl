@@ -179,19 +179,38 @@ internal class DeclRewriter : CSharpSyntaxRewriter {
 		// Remove property body (get/set accessors) and expression body, keep only the declaration
 		var newNode = node;
 
-		// Remove expression body (=> ...)
-		if (newNode.ExpressionBody != null) {
-			newNode = newNode.WithExpressionBody(null);
-		}
+		// Save trailing trivia from accessor list or expression body before removing them
+		// This preserves #if, #endif and other preprocessor directives
+		SyntaxTriviaList trailingTrivia = default;
 
 		// Remove accessor list (get { } set { })
 		if (newNode.AccessorList != null) {
+			// Get trailing trivia from the close brace of accessor list
+			// This includes directives like #if Impl that appear after the closing brace
+			trailingTrivia = newNode.AccessorList.CloseBraceToken.TrailingTrivia;
 			newNode = newNode.WithAccessorList(null);
 		}
 
-		// Add semicolon if not present
+		// Remove expression body (=> ...)
+		if (newNode.ExpressionBody != null) {
+			// If there's an expression body, get its trailing trivia instead
+			var exprTrailing = newNode.ExpressionBody.GetTrailingTrivia();
+			if (exprTrailing.Count > 0) {
+				trailingTrivia = exprTrailing;
+			}
+			newNode = newNode.WithExpressionBody(null);
+		}
+
+		// Add semicolon if not present, preserving trailing trivia
 		if (!newNode.SemicolonToken.IsKind(SyntaxKind.SemicolonToken)) {
-			newNode = newNode.WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken));
+			var semicolonToken = SyntaxFactory.Token(SyntaxKind.SemicolonToken);
+
+			// If we have trailing trivia (like #if directives), append it to the semicolon
+			if (trailingTrivia.Count > 0) {
+				semicolonToken = semicolonToken.WithTrailingTrivia(trailingTrivia);
+			}
+
+			newNode = newNode.WithSemicolonToken(semicolonToken);
 		}
 
 		return newNode;
