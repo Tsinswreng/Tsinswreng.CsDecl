@@ -201,6 +201,38 @@ internal class DeclRewriter : CSharpSyntaxRewriter {
 			newNode = newNode.WithExpressionBody(null);
 		}
 
+		// If the property has an initializer, handle the trivia properly
+		// The #if directive should appear on a new line before the initializer
+		if (newNode.Initializer != null) {
+			// Get the leading trivia from the initializer (contains #if Impl)
+			var initLeadingTrivia = newNode.Initializer.GetLeadingTrivia();
+
+			// Build new leading trivia with proper formatting
+			var newLeadingTrivia = new List<SyntaxTrivia>();
+
+			// Add a newline first so #if appears on its own line
+			newLeadingTrivia.Add(SyntaxFactory.CarriageReturnLineFeed);
+
+			// Add the trailing trivia from accessor list (may contain #if directive)
+			if (trailingTrivia.Count > 0) {
+				foreach (var t in trailingTrivia) {
+					newLeadingTrivia.Add(t);
+				}
+			}
+
+			// Also preserve any existing leading trivia from the initializer
+			if (initLeadingTrivia.Count > 0) {
+				foreach (var t in initLeadingTrivia) {
+					newLeadingTrivia.Add(t);
+				}
+			}
+
+			var newInitializer = newNode.Initializer.WithLeadingTrivia(newLeadingTrivia);
+			newNode = newNode.WithInitializer(newInitializer);
+			// Clear trailingTrivia since we've used it
+			trailingTrivia = default;
+		}
+
 		// Add semicolon if not present, preserving trailing trivia
 		if (!newNode.SemicolonToken.IsKind(SyntaxKind.SemicolonToken)) {
 			var semicolonToken = SyntaxFactory.Token(SyntaxKind.SemicolonToken);
