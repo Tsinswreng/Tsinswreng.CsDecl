@@ -40,3 +40,11 @@ mkdir -p MyOutDir/
 CsDecl MyProj.csproj MyOutDir/
 ```
 ]
+
+
+#H[簡單測試][
+```bash
+# cwd=<git root>/proj/Tsinswreng.CsDecl.Cli/
+dotnet run -- ../TestCsprojCases/Test1/Test1.csproj bin
+```
+]
